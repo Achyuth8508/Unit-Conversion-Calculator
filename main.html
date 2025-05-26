@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unit Conversion Calculator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.22.10/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body className="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Conversion factors (base unit for each category is the first unit)
+    const conversionFactors = {
+      currency: {
+        name: "Currency",
+        units: {
+          USD: { name: "United States Dollar", factor: 1 },
+          EUR: { name: "Euro", factor: 0.92 },
+          GBP: { name: "British Pound", factor: 0.79 },
+          JPY: { name: "Japanese Yen", factor: 147.5 },
+          INR: { name: "Indian Rupee", factor: 83.5 },
+          AUD: { name: "Australian Dollar", factor: 1.51 },
+          CAD: { name: "Canadian Dollar", factor: 1.37 },
+          CHF: { name: "Swiss Franc", factor: 0.87 },
+          CNY: { name: "Chinese Yuan", factor: 7.15 },
+          NZD: { name: "New Zealand Dollar", factor: 1.63 },
+          SGD: { name: "Singapore Dollar", factor: 1.35 },
+          BRL: { name: "Brazilian Real", factor: 5.25 },
+        },
+      },
+      length: {
+        name: "Length",
+        units: {
+          m: { name: "Meter", factor: 1 },
+          km: { name: "Kilometer", factor: 0.001 },
+          cm: { name: "Centimeter", factor: 100 },
+          mm: { name: "Millimeter", factor: 1000 },
+          ft: { name: "Foot", factor: 3.28084 },
+          in: { name: "Inch", factor: 39.3701 },
+          mi: { name: "Mile", factor: 0.000621371 },
+        },
+      },
+      area: {
+        name: "Area",
+        units: {
+          sqm: { name: "Square Meter", factor: 1 },
+          sqkm: { name: "Square Kilometer", factor: 0.000001 },
+          sqcm: { name: "Square Centimeter", factor: 10000 },
+          sqft: { name: "Square Foot", factor: 10.7639 },
+          sqmi: { name: "Square Mile", factor: 0.000000386102 },
+          acre: { name: "Acre", factor: 0.000247105 },
+        },
+      },
+      speed: {
+        name: "Speed",
+        units: {
+          mps: { name: "Meter per Second", factor: 1 },
+          kmph: { name: "Kilometer per Hour", factor: 3.6 },
+          mph: { name: "Mile per Hour", factor: 2.23694 },
+          knot: { name: "Knot", factor: 1.94384 },
+        },
+      },
+      temperature: {
+        name: "Temperature",
+        units: {
+          C: { name: "Celsius", factor: null },
+          F: { name: "Fahrenheit", factor: null },
+          K: { name: "Kelvin", factor: null },
+        },
+      },
+      power: {
+        name: "Power",
+        units: {
+          W: { name: "Watt", factor: 1 },
+          kW: { name: "Kilowatt", factor: 0.001 },
+          MW: { name: "Megawatt", factor: 0.000001 },
+          hp: { name: "Horsepower", factor: 0.00134102 },
+        },
+      },
+      pressure: {
+        name: "Pressure",
+        units: {
+          Pa: { name: "Pascal", factor: 1 },
+          kPa: { name: "Kilopascal", factor: 0.001 },
+          bar: { name: "Bar", factor: 0.00001 },
+          psi: { name: "Pound per Square Inch", factor: 0.000145038 },
+          atm: { name: "Atmosphere", factor: 0.00000986923 },
+        },
+      },
+      weight: {
+        name: "Weight",
+        units: {
+          kg: { name: "Kilogram", factor: 1 },
+          g: { name: "Gram", factor: 1000 },
+          mg: { name: "Milligram", factor: 1000000 },
+          lb: { name: "Pound", factor: 2.20462 },
+          oz: { name: "Ounce", factor: 35.274 },
+          t: { name: "Metric Ton", factor: 0.001 },
+        },
+      },
+    };
+
+    // Temperature conversion function
+    const convertTemperature = (value, fromUnit, toUnit) => {
+      let celsius;
+      if (fromUnit === "C") celsius = value;
+      else if (fromUnit === "F") celsius = (value - 32) * (5 / 9);
+      else if (fromUnit === "K") celsius = value - 273.15;
+
+      if (toUnit === "C") return celsius;
+      if (toUnit === "F") return celsius * (9 / 5) + 32;
+      if (toUnit === "K") return celsius + 273.15;
+      return value;
+    };
+
+    // Main conversion function
+    const convertUnits = (value, fromUnit, toUnit, category) => {
+      if (!value || isNaN(value) || !fromUnit || !toUnit) return "";
+      try {
+        if (category === "temperature") {
+          return parseFloat(convertTemperature(value, fromUnit, toUnit).toFixed(4));
+        }
+        const fromFactor = conversionFactors[category].units[fromUnit].factor;
+        const toFactor = conversionFactors[category].units[toUnit].factor;
+        return parseFloat(((value / fromFactor) * toFactor).toFixed(4));
+      } catch (error) {
+        console.error("Conversion error:", error);
+        return "";
+      }
+    };
+
+    const ConversionCalculator = () => {
+      const [category, setCategory] = useState("length");
+      const [fromUnit, setFromUnit] = useState(Object.keys(conversionFactors["length"].units)[0]);
+      const [toUnit, setToUnit] = useState(Object.keys(conversionFactors["length"].units)[1]);
+      const [inputValue, setInputValue] = useState("");
+      const [result, setResult] = useState("");
+
+      // Update units when category changes
+      useEffect(() => {
+        const units = Object.keys(conversionFactors[category].units);
+        setFromUnit(units[0]);
+        setToUnit(units[1] || units[0]); // Fallback to first unit if only one exists
+        setInputValue("");
+        setResult("");
+      }, [category]);
+
+      const handleCategoryChange = (e) => {
+        setCategory(e.target.value);
+      };
+
+      const handleInputChange = (e) => {
+        const value = e.target.value;
+        setInputValue(value);
+        setResult(convertUnits(value, fromUnit, toUnit, category));
+      };
+
+      const handleFromUnitChange = (e) => {
+        const newFromUnit = e.target.value;
+        setFromUnit(newFromUnit);
+        setResult(convertUnits(inputValue, newFromUnit, toUnit, category));
+      };
+
+      const handleToUnitChange = (e) => {
+        const newToUnit = e.target.value;
+        setToUnit(newToUnit);
+        setResult(convertUnits(inputValue, fromUnit, newToUnit, category));
+      };
+
+      return (
+        <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+          <h1 className="text-2xl font-bold text-center mb-4">Unit Converter</h1>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Category</label>
+            <select
+              value={category}
+              onChange={handleCategoryChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            >
+              {Object.keys(conversionFactors).map((cat) => (
+                <option key={cat} value={cat}>
+                  {conversionFactors[cat].name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">From</label>
+            <input
+              type="number"
+              value={inputValue}
+              onChange={handleInputChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              placeholder="Enter value"
+            />
+            <select
+              value={fromUnit}
+              onChange={handleFromUnitChange}
+              className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            >
+              {Object.keys(conversionFactors[category].units).map((unit) => (
+                <option key={unit} value={unit}>
+                  {conversionFactors[category].units[unit].name} ({unit})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">To</label>
+            <select
+              value={toUnit}
+              onChange={handleToUnitChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            >
+              {Object.keys(conversionFactors[category].units).map((unit) => (
+                <option key={unit} value={unit}>
+                  {conversionFactors[category].units[unit].name} ({unit})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="text-center">
+            <p className="text-lg font-semibold">
+              {inputValue && result && fromUnit !== toUnit
+                ? `${inputValue} ${conversionFactors[category].units[fromUnit].name} = ${result} ${conversionFactors[category].units[toUnit].name}`
+                : inputValue && fromUnit === toUnit
+                ? "Source and target units are the same"
+                : "Enter a value to convert"}
+            </p>
+          </div>
+        </div>
+      );
+    };
+
+    ReactDOM.render(<ConversionCalculator />, document.getElementById("root"));
+  </script>
+</body>
+</html>
